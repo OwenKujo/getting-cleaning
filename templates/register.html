@@ -18,15 +18,16 @@
     <form method="post">
         <div class="mb-3">
             <label for="username" class="form-label">ชื่อผู้ใช้</label>
-            <input type="text" class="form-control" id="username" name="username" required>
+            <input type="text" class="form-control" id="username" name="username" maxlength="32" placeholder="ไม่เกิน 32 ตัวอักษร" required>
+            <div class="form-text">ชื่อผู้ใช้ต้องไม่เกิน 32 ตัวอักษร</div>
         </div>
         <div class="mb-3">
             <label for="password" class="form-label">รหัสผ่าน</label>
-            <input type="password" class="form-control" id="password" name="password" required>
+            <input type="password" class="form-control" id="password" name="password" placeholder="รหัสผ่านของคุณ" required>
         </div>
         <div class="mb-3">
             <label for="confirm_password" class="form-label">ยืนยันรหัสผ่าน</label>
-            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="กรอกรหัสผ่านอีกครั้ง" required>
         </div>
         <button type="submit" class="btn btn-success">สมัครสมาชิก</button>
     </form>

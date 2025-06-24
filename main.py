@@ -103,13 +103,21 @@ def register():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip()
         password = request.form['password']
         confirm_password = request.form['confirm_password']
+        # Validation
+        if not username or not password or not confirm_password:
+            flash('กรุณากรอกข้อมูลให้ครบถ้วน', 'danger')
+            return render_template('register.html')
+        if len(username) > 32:
+            flash('ชื่อผู้ใช้ต้องไม่เกิน 32 ตัวอักษร', 'danger')
+            return render_template('register.html')
         if password != confirm_password:
             flash('รหัสผ่านไม่ตรงกัน', 'danger')
             return render_template('register.html')
-        if User.query.filter_by(username=username).first():
+        # Check for duplicate username (case-insensitive)
+        if User.query.filter(db.func.lower(User.username) == username.lower()).first():
             flash('ชื่อผู้ใช้นี้ถูกใช้แล้ว', 'danger')
             return render_template('register.html')
         hashed_pw = generate_password_hash(password)
@@ -125,13 +133,16 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip()
         password = request.form['password']
-        user = User.query.filter_by(username=username).first()
+        if not username or not password:
+            flash('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน', 'danger')
+            return render_template('login.html')
+        user = User.query.filter(db.func.lower(User.username) == username.lower()).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
             flash('เข้าสู่ระบบสำเร็จ', 'success')
-            return redirect(url_for('home'))
+            return redirect(url_for('profile'))
         else:
             flash('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'danger')
     return render_template('login.html')
