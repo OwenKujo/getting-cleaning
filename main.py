@@ -1,9 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from dotenv import load_dotenv
+import openai
+import re
 
 from pythainlp.tokenize import word_tokenize
 from meanings_data import (
@@ -65,6 +67,44 @@ def find_dream_meaning(text, topic):
             meaning, numbers = meanings[word]
             return f"🔍 ฝันถึง '{word}'\n💡 ความหมาย: {meaning}\n🔢 เลขนำโชค: {' '.join(numbers)}"
     return "ขออภัย ไม่พบคำทำนายที่ตรงกับความฝันของคุณ"
+
+def get_relevant_meanings(dream_text, topic):
+    # เลือก meanings dict ตาม topic
+    topic_map = {
+        '1': meanings_money,
+        '2': meanings_love,
+        '3': meanings_work,
+        '4': meanings_animal,
+        '5': meanings_activities,
+        '6': meanings_good_bad,
+        '7': meanigs_right_left,
+        '8': meanings_general,
+    }
+    meanings = topic_map.get(str(topic), {})
+    tokens = word_tokenize(dream_text, engine='newmm')
+    found = []
+    for word in tokens:
+        if word in meanings:
+            meaning, numbers = meanings[word]
+            found.append(f"'{word}': {meaning} (เลข: {' '.join(numbers)})")
+    return '\n'.join(found) if found else 'ไม่พบข้อมูลในฐานข้อมูล'
+
+def llm_interpret_dream_with_data(dream_text, time, topic):
+    relevant = get_relevant_meanings(dream_text, topic)
+    prompt = (
+        f"ฐานข้อมูลทำนายฝัน:\n{relevant}\n\n"
+        f"ผู้ใช้ฝันว่า: {dream_text}\nช่วงเวลา: {time}\nหัวข้อ: {topic}\n"
+        "โปรดทำนายความหมายของความฝันนี้อย่างละเอียด อ้างอิงจากฐานข้อมูลข้างต้นด้วย และให้เลขนำโชคหลายชุด (3-6 ชุด ชุดละ 2-4 ตัวเลข) โดยแยกแต่ละชุดด้วยเว้นวรรคหรือคอมม่า และอธิบายเลขแต่ละชุดด้วย ถ้าไม่มีในฐานข้อมูลให้สร้างเลขนำโชคใหม่ที่เหมาะสมกับความฝันนี้"
+    )
+    client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+    response = client.chat.completions.create(
+        model='gpt-3.5-turbo',
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=500,
+        temperature=0.7,
+    )
+    ai_text = response.choices[0].message.content
+    return ai_text
 
 # --- Flask App Setup ---
 app = Flask(__name__)
@@ -165,16 +205,46 @@ def predict():
     dream_text = request.form['dream_text']
     dream_time = request.form['dream_time']
     dream_topic = request.form['dream_topic']
+
+    # Your classic logic
     prediction = Dream_Prediction(dream_time, dream_topic)
     meaning = find_dream_meaning(dream_text, dream_topic)
-    # Save to history
-    new_dream = Dream(text=dream_text, time=dream_time, topic=dream_topic, result=meaning, user_id=current_user.id)
+
+    # LLM logic
+    ai_text = llm_interpret_dream_with_data(dream_text, dream_time, dream_topic)
+
+    # Save to history (you can save both or just one)
+    new_dream = Dream(
+        text=dream_text,
+        time=dream_time,
+        topic=dream_topic,
+        result=ai_text,  # or combine both if you want
+        user_id=current_user.id
+    )
     db.session.add(new_dream)
     db.session.commit()
-    return render_template('result.html', prediction=prediction, meaning=meaning)
+
+    return render_template(
+        'result.html',
+        prediction=prediction,
+        meaning=meaning,
+        llm_result=ai_text
+    )
+
+@app.route('/delete_dream/<int:dream_id>', methods=['POST'])
+@login_required
+def delete_dream(dream_id):
+    dream = Dream.query.get_or_404(dream_id)
+    if dream.user_id != current_user.id:
+        abort(403)
+    db.session.delete(dream)
+    db.session.commit()
+    flash('ลบประวัติความฝันเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('profile'))
 
 if __name__ == '__main__':
     load_dotenv()
+    openai.api_key = os.environ.get('OPENAI_API_KEY')
     with app.app_context():
         db.create_all()
     app.run(debug=True)

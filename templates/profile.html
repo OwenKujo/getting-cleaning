@@ -23,6 +23,7 @@
                 <th>เวลา</th>
                 <th>หัวข้อ</th>
                 <th>ผลทำนาย</th>
+                <th>ลบ</th>
             </tr>
         </thead>
         <tbody>
@@ -32,6 +33,11 @@
                 <td>{{ dream.time }}</td>
                 <td>{{ dream.topic }}</td>
                 <td>{{ dream.result }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('delete_dream', dream_id=dream.id) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('ยืนยันการลบประวัติความฝันนี้?');">ลบ</button>
+                    </form>
+                </td>
             </tr>
             {% endfor %}
         </tbody>

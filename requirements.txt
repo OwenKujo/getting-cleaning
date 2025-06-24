@@ -10,3 +10,4 @@ pythainlp
 psycopg2-binary 
 gunicorn
 python-dotenv
+openai
