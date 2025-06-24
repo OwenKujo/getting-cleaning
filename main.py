@@ -1,21 +1,25 @@
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+import os
+from dotenv import load_dotenv
+
 from pythainlp.tokenize import word_tokenize
 from meanings_data import (
     meanings_money, meanings_work, meanings_animal, meanings_activities,
     meanings_good_bad, meanigs_right_left, meanings_general, meanings_love
 )
-def Dream_Prediction(time_str, topic):
-    try:
-        hour = int(time_str.split()[1].split(":")[0])
-    except Exception:
-        return "รูปแบบเวลาความฝันไม่ถูกต้อง\nไม่สามารถทำนายได้"
 
-    if 7 < hour < 19:
+def Dream_Prediction(time_str, topic):
+    # time_str is now one of: 'กลางวัน', 'หัวค่ำ', 'ยามดึก', 'ยามเช้า'
+    if time_str == 'กลางวัน':
         time_msg = "ฝันกลางวัน: ไม่สามารถเชื่อถือได้\n➡ อาจเกิดจากจินตนาการ"
-    elif 19 <= hour < 23:
+    elif time_str == 'หัวค่ำ':
         time_msg = "ฝันหัวค่ำ: ลางบอกเหตุถึงบุคคลทางไกล"
-    elif hour >= 23 or hour < 3:
+    elif time_str == 'ยามดึก':
         time_msg = "ฝันยามดึก: เรื่องจริงเกี่ยวกับครอบครัว"
-    elif 3 <= hour < 7:
+    elif time_str == 'ยามเช้า':
         time_msg = "ฝันยามเช้า: จะเกิดขึ้นในเวลาอันใกล้"
     else:
         time_msg = "ไม่พบช่วงเวลาความฝัน"
@@ -32,7 +36,9 @@ def Dream_Prediction(time_str, topic):
     }.get(str(topic), "ไม่พบหัวข้อที่ต้องการทำนาย")
 
     return f"{time_msg}\n{topic_msg}"
+
 # คำทำนายฝันตามหัวข้อต่างๆ
+
 def find_dream_meaning(text, topic):
     tokens = word_tokenize(text, engine='newmm')
     if topic == '1':
@@ -60,13 +66,104 @@ def find_dream_meaning(text, topic):
             return f"🔍 ฝันถึง '{word}'\n💡 ความหมาย: {meaning}\n🔢 เลขนำโชค: {' '.join(numbers)}"
     return "ขออภัย ไม่พบคำทำนายที่ตรงกับความฝันของคุณ"
 
+# --- Flask App Setup ---
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_default_secret')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://fortune_q9tq_user:oYe6KE2wQauo9mG9d28StvKrbNwKyzx8@dpg-d1da0k7diees73cmobj0-a.oregon-postgres.render.com/fortune_q9tq'
+db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
-# รับ input จากผู้ใช้
-user_text = input("กรุณากรอกประโยคความฝัน: ")
-user_time = input("กรุณากรอกเวลาความฝัน (รูปแบบ YYYY-MM-DD HH:MM:SS): ")
-user_topic = input("เลือกหัวข้อ (1=การเงิน, 2=ความรัก, 3=การงาน, 4=สัตว์, 5=เหตุการณ์ทั่วไป, 6=เรื่องดี/ร้าย, 7=ขวาร้ายซ้ายดี, 8=ทั่วไป): ")
+# --- Models ---
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+    dreams = db.relationship('Dream', backref='user', lazy=True)
 
-# แสดงผล
-print("\n🔮 ผลการทำนายฝัน 🔮")
-print(Dream_Prediction(user_time, user_topic))
-print(find_dream_meaning(user_text, user_topic))
+class Dream(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.Text, nullable=False)
+    time = db.Column(db.String(50), nullable=False)
+    topic = db.Column(db.String(10), nullable=False)
+    result = db.Column(db.Text, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# --- Routes (HTML templates to be added) ---
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        if password != confirm_password:
+            flash('รหัสผ่านไม่ตรงกัน', 'danger')
+            return render_template('register.html')
+        if User.query.filter_by(username=username).first():
+            flash('ชื่อผู้ใช้นี้ถูกใช้แล้ว', 'danger')
+            return render_template('register.html')
+        hashed_pw = generate_password_hash(password)
+        new_user = User(username=username, password=hashed_pw)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            login_user(user)
+            flash('เข้าสู่ระบบสำเร็จ', 'success')
+            return redirect(url_for('home'))
+        else:
+            flash('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'danger')
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
+
+@app.route('/profile')
+@login_required
+def profile():
+    dreams = Dream.query.filter_by(user_id=current_user.id).order_by(Dream.id.desc()).all()
+    return render_template('profile.html', dreams=dreams)
+
+@app.route('/predict', methods=['POST'])
+@login_required
+def predict():
+    dream_text = request.form['dream_text']
+    dream_time = request.form['dream_time']
+    dream_topic = request.form['dream_topic']
+    prediction = Dream_Prediction(dream_time, dream_topic)
+    meaning = find_dream_meaning(dream_text, dream_topic)
+    # Save to history
+    new_dream = Dream(text=dream_text, time=dream_time, topic=dream_topic, result=meaning, user_id=current_user.id)
+    db.session.add(new_dream)
+    db.session.commit()
+    return render_template('result.html', prediction=prediction, meaning=meaning)
+
+if __name__ == '__main__':
+    load_dotenv()
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)

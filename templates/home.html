@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>ทำนายฝัน - Dream Prediction</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <h1 class="mb-4">🔮 ทำนายฝันออนไลน์</h1>
+    {% if current_user.is_authenticated %}
+        <p>สวัสดี, {{ current_user.username }} | <a href="{{ url_for('profile') }}">โปรไฟล์</a> | <a href="{{ url_for('logout') }}">ออกจากระบบ</a></p>
+        <form method="post" action="{{ url_for('predict') }}">
+            <div class="mb-3">
+                <label for="dream_text" class="form-label">กรอกประโยคความฝัน</label>
+                <textarea class="form-control" id="dream_text" name="dream_text" rows="2" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="dream_time" class="form-label">ช่วงเวลาความฝัน</label>
+                <select class="form-select" id="dream_time" name="dream_time" required>
+                    <option value="กลางวัน">ฝันกลางวัน</option>
+                    <option value="หัวค่ำ">ฝันหัวค่ำ</option>
+                    <option value="ยามดึก">ฝันยามดึก</option>
+                    <option value="ยามเช้า">ฝันยามเช้า</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="dream_topic" class="form-label">เลือกหัวข้อ</label>
+                <select class="form-select" id="dream_topic" name="dream_topic" required>
+                    <option value="1">การเงิน</option>
+                    <option value="2">ความรัก</option>
+                    <option value="3">การงาน</option>
+                    <option value="4">สัตว์</option>
+                    <option value="5">เหตุการณ์ทั่วไป</option>
+                    <option value="6">เรื่องดี/ร้าย</option>
+                    <option value="7">ขวาร้ายซ้ายดี</option>
+                    <option value="8">ทั่วไป</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">ทำนายฝัน</button>
+        </form>
+    {% else %}
+        <p><a href="{{ url_for('login') }}">เข้าสู่ระบบ</a> หรือ <a href="{{ url_for('register') }}">สมัครสมาชิก</a> เพื่อบันทึกประวัติความฝัน</p>
+    {% endif %}
+</div>
+</body>
+</html> 

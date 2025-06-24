@@ -2,4 +2,9 @@ requests
 beautifulsoup4
 selenium
 webdriver-manager
-undetected-chromedriver 
+undetected-chromedriver
+Flask
+Flask-Login
+Flask-SQLAlchemy
+pythainlp
+psycopg2-binary 
