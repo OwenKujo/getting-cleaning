@@ -8,3 +8,5 @@ Flask-Login
 Flask-SQLAlchemy
 pythainlp
 psycopg2-binary 
+gunicorn
+python-dotenv
