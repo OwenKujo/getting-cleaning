@@ -6,7 +6,7 @@ import os
 from dotenv import load_dotenv
 import openai
 import re
-from openai import error as openai_error
+from openai import RateLimitError
 
 from pythainlp.tokenize import word_tokenize
 from meanings_data import (
@@ -212,7 +212,7 @@ def predict():
 
     try:
         ai_text = llm_interpret_dream_with_data(dream_text, dream_time, dream_topic)
-    except openai_error.RateLimitError:
+    except RateLimitError:
         ai_text = "ขออภัย ระบบ AI ไม่สามารถทำนายได้ในขณะนี้ (เกินโควต้าการใช้งาน OpenAI)"
     except Exception as e:
         ai_text = f"เกิดข้อผิดพลาดกับระบบ AI: {e}"
