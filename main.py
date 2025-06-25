@@ -6,6 +6,7 @@ import os
 from dotenv import load_dotenv
 import openai
 import re
+from openai import error as openai_error
 
 from pythainlp.tokenize import word_tokenize
 from meanings_data import (
@@ -206,19 +207,21 @@ def predict():
     dream_time = request.form['dream_time']
     dream_topic = request.form['dream_topic']
 
-    # Your classic logic
     prediction = Dream_Prediction(dream_time, dream_topic)
     meaning = find_dream_meaning(dream_text, dream_topic)
 
-    # LLM logic
-    ai_text = llm_interpret_dream_with_data(dream_text, dream_time, dream_topic)
+    try:
+        ai_text = llm_interpret_dream_with_data(dream_text, dream_time, dream_topic)
+    except openai_error.RateLimitError:
+        ai_text = "ขออภัย ระบบ AI ไม่สามารถทำนายได้ในขณะนี้ (เกินโควต้าการใช้งาน OpenAI)"
+    except Exception as e:
+        ai_text = f"เกิดข้อผิดพลาดกับระบบ AI: {e}"
 
-    # Save to history (you can save both or just one)
     new_dream = Dream(
         text=dream_text,
         time=dream_time,
         topic=dream_topic,
-        result=ai_text,  # or combine both if you want
+        result=ai_text,
         user_id=current_user.id
     )
     db.session.add(new_dream)
