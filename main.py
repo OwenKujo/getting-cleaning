@@ -14,8 +14,12 @@ from meanings_data import (
     meanings_good_bad, meanigs_right_left, meanings_general, meanings_love
 )
 
-def Dream_Prediction(time_str, topic):
-    # time_str is now one of: 'กลางวัน', 'หัวค่ำ', 'ยามดึก', 'ยามเช้า'
+# รวมทุก meanings dict เป็นหนึ่งเดียว
+ALL_MEANINGS = {}
+for d in [meanings_money, meanings_work, meanings_animal, meanings_activities, meanings_good_bad, meanigs_right_left, meanings_general, meanings_love]:
+    ALL_MEANINGS.update(d)
+
+def Dream_Prediction(time_str, topic=None):
     if time_str == 'กลางวัน':
         time_msg = "ฝันกลางวัน: ไม่สามารถเชื่อถือได้\n➡ อาจเกิดจากจินตนาการ"
     elif time_str == 'หัวค่ำ':
@@ -26,72 +30,29 @@ def Dream_Prediction(time_str, topic):
         time_msg = "ฝันยามเช้า: จะเกิดขึ้นในเวลาอันใกล้"
     else:
         time_msg = "ไม่พบช่วงเวลาความฝัน"
-
-    topic_msg = {
-        '1': "หมวดการเงิน",
-        '2': "หมวดความรัก",
-        '3': "หมวดการงาน",
-        '4': "หมวดสัตว์",
-        '5': "หมวดเหตุการณ์ทั่วไป",
-        '6': "หมวดทํษนายเรื่องดี เรื่องร้าย",
-        '7': "หมวดเหมือนขวาร้าย ซ้ายดี",
-        '8': "หมวดทั้่วไป",
-    }.get(str(topic), "ไม่พบหัวข้อที่ต้องการทำนาย")
-
-    return f"{time_msg}\n{topic_msg}"
+    return time_msg
 
 # คำทำนายฝันตามหัวข้อต่างๆ
 
-def find_dream_meaning(text, topic):
+def find_dream_meaning(text, topic=None):
     tokens = word_tokenize(text, engine='newmm')
-    if topic == '1':
-        meanings = meanings_money
-    elif topic == '2':
-        meanings = meanings_love
-    elif topic == '3':
-        meanings = meanings_work
-    elif topic == '4':
-        meanings = meanings_animal
-    elif topic == '5':
-        meanings = meanings_activities
-    elif topic == '6':
-        meanings = meanings_good_bad    
-    elif topic == '7':
-        meanings = meanigs_right_left
-    elif topic == '8':
-        meanings = meanings_general
-    else:
-        return "หัวข้อไม่ถูกต้อง"
-
     for word in tokens:
-        if word in meanings:
-            meaning, numbers = meanings[word]
+        if word in ALL_MEANINGS:
+            meaning, numbers = ALL_MEANINGS[word]
             return f"🔍 ฝันถึง '{word}'\n💡 ความหมาย: {meaning}\n🔢 เลขนำโชค: {' '.join(numbers)}"
     return "ขออภัย ไม่พบคำทำนายที่ตรงกับความฝันของคุณ"
 
-def get_relevant_meanings(dream_text, topic):
-    # เลือก meanings dict ตาม topic
-    topic_map = {
-        '1': meanings_money,
-        '2': meanings_love,
-        '3': meanings_work,
-        '4': meanings_animal,
-        '5': meanings_activities,
-        '6': meanings_good_bad,
-        '7': meanigs_right_left,
-        '8': meanings_general,
-    }
-    meanings = topic_map.get(str(topic), {})
+def get_relevant_meanings(dream_text, topic=None):
     tokens = word_tokenize(dream_text, engine='newmm')
     found = []
     for word in tokens:
-        if word in meanings:
-            meaning, numbers = meanings[word]
+        if word in ALL_MEANINGS:
+            meaning, numbers = ALL_MEANINGS[word]
             found.append(f"'{word}': {meaning} (เลข: {' '.join(numbers)})")
     return '\n'.join(found) if found else 'ไม่พบข้อมูลในฐานข้อมูล'
 
 def llm_interpret_dream_with_data(dream_text, time, topic):
-    relevant = get_relevant_meanings(dream_text, topic)
+    relevant = get_relevant_meanings(dream_text)
     prompt = (
         f"ฐานข้อมูลทำนายฝัน:\n{relevant}\n\n"
         f"ผู้ใช้ฝันว่า: {dream_text}\nช่วงเวลา: {time}\nหัวข้อ: {topic}\n"
@@ -205,13 +166,14 @@ def profile():
 def predict():
     dream_text = request.form['dream_text']
     dream_time = request.form['dream_time']
-    dream_topic = request.form['dream_topic']
+    # ไม่ต้องรับ dream_topic จากฟอร์มอีกต่อไป
+    dream_topic = '-'  # default value for DB compatibility
 
-    prediction = Dream_Prediction(dream_time, dream_topic)
-    meaning = find_dream_meaning(dream_text, dream_topic)
+    prediction = Dream_Prediction(dream_time)
+    meaning = find_dream_meaning(dream_text)
 
     try:
-        ai_text = llm_interpret_dream_with_data(dream_text, dream_time, dream_topic)
+        ai_text = llm_interpret_dream_with_data(dream_text, dream_time, None)
     except RateLimitError:
         ai_text = "ขออภัย ระบบ AI ไม่สามารถทำนายได้ในขณะนี้ (เกินโควต้าการใช้งาน OpenAI)"
     except Exception as e:
