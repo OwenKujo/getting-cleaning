@@ -19,6 +19,31 @@ ALL_MEANINGS = {}
 for d in [meanings_money, meanings_work, meanings_animal, meanings_activities, meanings_good_bad, meanigs_right_left, meanings_general, meanings_love]:
     ALL_MEANINGS.update(d)
 
+# Mapping from keyword to category
+KEYWORD_TO_CATEGORY = {}
+CATEGORY_LABELS = {
+    'meanings_money': 'การเงิน',
+    'meanings_love': 'ความรัก',
+    'meanings_work': 'การงาน',
+    'meanings_animal': 'สัตว์',
+    'meanings_activities': 'เหตุการณ์ทั่วไป',
+    'meanings_good_bad': 'เรื่องดี/ร้าย',
+    'meanigs_right_left': 'ขวาร้ายซ้ายดี',
+    'meanings_general': 'ทั่วไป',
+}
+for cat_name, d in [
+    ('meanings_money', meanings_money),
+    ('meanings_love', meanings_love),
+    ('meanings_work', meanings_work),
+    ('meanings_animal', meanings_animal),
+    ('meanings_activities', meanings_activities),
+    ('meanings_good_bad', meanings_good_bad),
+    ('meanigs_right_left', meanigs_right_left),
+    ('meanings_general', meanings_general),
+]:
+    for k in d:
+        KEYWORD_TO_CATEGORY[k] = CATEGORY_LABELS[cat_name]
+
 def Dream_Prediction(time_str, topic=None):
     if time_str == 'กลางวัน':
         time_msg = "ฝันกลางวัน: ไม่สามารถเชื่อถือได้\n➡ อาจเกิดจากจินตนาการ"
@@ -36,11 +61,18 @@ def Dream_Prediction(time_str, topic=None):
 
 def find_dream_meaning(text, topic=None):
     tokens = word_tokenize(text, engine='newmm')
+    results = []
+    matched_categories = set()
     for word in tokens:
         if word in ALL_MEANINGS:
             meaning, numbers = ALL_MEANINGS[word]
-            return f"🔍 ฝันถึง '{word}'\n💡 ความหมาย: {meaning}\n🔢 เลขนำโชค: {' '.join(numbers)}"
-    return "ขออภัย ไม่พบคำทำนายที่ตรงกับความฝันของคุณ"
+            category = KEYWORD_TO_CATEGORY.get(word, '-')
+            matched_categories.add(category)
+            results.append(f"🔍 ฝันถึง '{word}' (หมวด: {category})\n💡 ความหมาย: {meaning}\n🔢 เลขนำโชค: {' '.join(numbers)}")
+    if results:
+        return '\n\n'.join(results), list(matched_categories)
+    else:
+        return "ขออภัย ไม่พบคำทำนายที่ตรงกับความฝันของคุณ", []
 
 def get_relevant_meanings(dream_text, topic=None):
     tokens = word_tokenize(dream_text, engine='newmm')
@@ -166,11 +198,10 @@ def profile():
 def predict():
     dream_text = request.form['dream_text']
     dream_time = request.form['dream_time']
-    # ไม่ต้องรับ dream_topic จากฟอร์มอีกต่อไป
-    dream_topic = '-'  # default value for DB compatibility
+    dream_topic = '-'  # always set to '-' for DB compatibility, not from user
 
     prediction = Dream_Prediction(dream_time)
-    meaning = find_dream_meaning(dream_text)
+    meaning, matched_categories = find_dream_meaning(dream_text)
 
     try:
         ai_text = llm_interpret_dream_with_data(dream_text, dream_time, None)
@@ -193,7 +224,8 @@ def predict():
         'result.html',
         prediction=prediction,
         meaning=meaning,
-        llm_result=ai_text
+        llm_result=ai_text,
+        matched_categories=matched_categories
     )
 
 @app.route('/delete_dream/<int:dream_id>', methods=['POST'])
