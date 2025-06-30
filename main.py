@@ -158,7 +158,7 @@ def register():
         new_user = User(username=username, password=hashed_pw)
         db.session.add(new_user)
         db.session.commit()
-        flash('สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ', 'success')
+        flash('ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ', 'success')
         return redirect(url_for('login'))
     return render_template('register.html')
 
