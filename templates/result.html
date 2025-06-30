@@ -2,26 +2,45 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ผลทำนายฝัน</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;700&family=Prompt:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { background: #f8fafc; font-family: 'Kanit', 'Prompt', sans-serif; }
+        .dream-card { max-width: 600px; margin: 0 auto; box-shadow: 0 2px 16px rgba(0,0,0,0.07); border-radius: 1rem; }
+        .dream-badge { font-size: 1rem; margin-right: 0.25rem; }
+    </style>
 </head>
 <body>
-<div class="container mt-5">
-    <h2>ผลทำนายฝัน</h2>
-    <div class="alert alert-info">
-        <strong>ทำนายแบบดั้งเดิม:</strong>
-        <pre>{{ prediction }}</pre>
-        <pre>{{ meaning }}</pre>
-    </div>
-    <div class="alert alert-success">
-        <strong>AI ทำนาย:</strong>
-        <div style="white-space: pre-line;">{{ llm_result }}</div>
-        {% if llm_lucky_numbers %}
-            <div><strong>เลขนำโชคจาก AI:</strong> {{ llm_lucky_numbers }}</div>
+<div class="container py-5">
+    <div class="dream-card bg-white p-4">
+        <h2 class="mb-3 text-center">ผลทำนายฝัน</h2>
+        {% if matched_categories and matched_categories|length > 0 %}
+            <div class="mb-3 text-center">
+                <span class="fw-bold">หมวดหมู่ที่เกี่ยวข้อง:</span>
+                {% for cat in matched_categories %}
+                    <span class="badge bg-info text-dark dream-badge">{{ cat }}</span>
+                {% endfor %}
+            </div>
         {% endif %}
+        <div class="alert alert-info mb-3">
+            <strong>ทำนายแบบดั้งเดิม:</strong>
+            <pre class="mb-0" style="white-space: pre-line;">{{ prediction }}</pre>
+            <pre class="mb-0" style="white-space: pre-line;">{{ meaning }}</pre>
+        </div>
+        <div class="alert alert-success mb-3">
+            <strong>AI ทำนาย:</strong>
+            <div style="white-space: pre-line;">{{ llm_result }}</div>
+            {% if llm_lucky_numbers %}
+                <div><strong>เลขนำโชคจาก AI:</strong> {{ llm_lucky_numbers }}</div>
+            {% endif %}
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('home') }}" class="btn btn-primary flex-fill">กลับหน้าหลัก</a>
+            <a href="{{ url_for('profile') }}" class="btn btn-secondary flex-fill">ดูประวัติความฝัน</a>
+        </div>
     </div>
-    <a href="{{ url_for('home') }}" class="btn btn-primary">กลับหน้าหลัก</a>
-    <a href="{{ url_for('profile') }}" class="btn btn-secondary">ดูประวัติความฝัน</a>
 </div>
 </body>
 </html> 
