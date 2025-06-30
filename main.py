@@ -86,15 +86,16 @@ def get_relevant_meanings(dream_text, topic=None):
 def llm_interpret_dream_with_data(dream_text, time, topic):
     relevant = get_relevant_meanings(dream_text)
     prompt = (
+        "คุณคือผู้เชี่ยวชาญทำนายฝัน ตอบสั้น กระชับ ได้ใจความ ชัดเจน ไม่ต้องอธิบายยาว\n"
         f"ฐานข้อมูลทำนายฝัน:\n{relevant}\n\n"
         f"ผู้ใช้ฝันว่า: {dream_text}\nช่วงเวลา: {time}\nหัวข้อ: {topic}\n"
-        "โปรดทำนายความหมายของความฝันนี้อย่างละเอียด อ้างอิงจากฐานข้อมูลข้างต้นด้วย และให้เลขนำโชคหลายชุด (3-6 ชุด ชุดละ 2-4 ตัวเลข) โดยแยกแต่ละชุดด้วยเว้นวรรคหรือคอมม่า และอธิบายเลขแต่ละชุดด้วย ถ้าไม่มีในฐานข้อมูลให้สร้างเลขนำโชคใหม่ที่เหมาะสมกับความฝันนี้"
+        "โปรดทำนายความหมายของความฝันนี้อย่างกระชับ อ้างอิงจากฐานข้อมูลข้างต้นด้วย และให้เลขนำโชค 2-3 ชุด (ชุดละ 2-4 ตัวเลข) ถ้าไม่มีในฐานข้อมูลให้สร้างเลขนำโชคใหม่ที่เหมาะสมกับความฝันนี้"
     )
     client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
     response = client.chat.completions.create(
-        model='gpt-3.5-turbo',
+        model='gpt-3.5-turbo-0125',
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=500,
+        max_tokens=200,
         temperature=0.7,
     )
     ai_text = response.choices[0].message.content
