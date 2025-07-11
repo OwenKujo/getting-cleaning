@@ -44,6 +44,8 @@ for cat_name, d in [
     for k in d:
         KEYWORD_TO_CATEGORY[k] = CATEGORY_LABELS[cat_name]
 
+
+# เริ่มฟังชั่นหลัก
 def Dream_Prediction(time_str, topic=None):
     if time_str == 'กลางวัน':
         time_msg = "ฝันกลางวัน: ไม่สามารถเชื่อถือได้\n➡ อาจเกิดจากจินตนาการ"
@@ -91,9 +93,14 @@ def llm_interpret_dream_with_data(dream_text, time, topic):
         f"ผู้ใช้ฝันว่า: {dream_text}\nช่วงเวลา: {time}\nหัวข้อ: {topic}\n"
         "โปรดทำนายความหมายของความฝันนี้อย่างกระชับ อ้างอิงจากฐานข้อมูลข้างต้นด้วย และให้เลขนำโชค 2-3 ชุด (ชุดละ 2-4 ตัวเลข) ถ้าไม่มีในฐานข้อมูลให้สร้างเลขนำโชคใหม่ที่เหมาะสมกับความฝันนี้"
     )
-    client = openai.OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+    # --- Typhoon LLM config ---
+    # Make sure Typhoon is running and accessible at this endpoint
+    TYPHOON_API_KEY = "sk-8BVadum7IQWz5qlrK8sjK0DzbRExmunC40o9zO3HsOazrfP9"
+    TYPHOON_BASE_URL = "https://api.opentyphoon.ai/v1"  # Change if your Typhoon server is remote or uses a different port
+    TYPHOON_MODEL = "typhoon-v2-70b-instruct"  # Change to a model available in your Typhoon instance
+    client = openai.OpenAI(api_key=TYPHOON_API_KEY, base_url=TYPHOON_BASE_URL)
     response = client.chat.completions.create(
-        model='gpt-3.5-turbo-0125',
+        model=TYPHOON_MODEL,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=200,
         temperature=0.7,
