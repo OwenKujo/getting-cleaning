@@ -227,7 +227,11 @@
                             <td>{{ crit }}</td>
                             <td>{{ max_score }}</td>
                             <td>
-                                <input type="number" name="{{ crit.replace(' ', '_') }}" min="0" max="{{ max_score }}" value="{{ judge_scores.get(crit, '') }}" required>
+                                {% if crit == locked_criterion %}
+                                    <span style="color:#bfa76a; font-weight:bold;">{{ locked_score }} (locked)</span>
+                                {% else %}
+                                    <input type="number" name="{{ crit.replace(' ', '_') }}" min="0" max="{{ max_score }}" value="{{ judge_scores.get(crit, '') }}" required>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

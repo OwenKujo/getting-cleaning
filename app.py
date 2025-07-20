@@ -37,6 +37,9 @@ CRITERIA = [
     ("Pitching & Communication", 10),
 ]
 
+LOCKED_CRITERION = 'Pitching & Communication'
+LOCKED_SCORE = 10
+
 @app.route('/')
 def home():
     teams = load_teams()
@@ -68,11 +71,14 @@ def team_detail(team_name):
         # Update scores for selected judge
         judge_scores = {}
         for crit, max_score in CRITERIA:
-            val = request.form.get(crit.replace(' ', '_'))
-            try:
-                judge_scores[crit] = int(val)
-            except:
-                judge_scores[crit] = 0
+            if crit == LOCKED_CRITERION:
+                judge_scores[crit] = LOCKED_SCORE
+            else:
+                val = request.form.get(crit.replace(' ', '_'))
+                try:
+                    judge_scores[crit] = int(val)
+                except:
+                    judge_scores[crit] = 0
         if team_name not in scores:
             scores[team_name] = {}
         scores[team_name][selected_judge] = judge_scores
@@ -85,11 +91,14 @@ def team_detail(team_name):
     judge_totals = {}
     for judge in JUDGES:
         js = team_scores.get(judge, {})
-        judge_totals[judge] = sum(js.get(crit, 0) for crit, _ in CRITERIA)
+        judge_totals[judge] = sum((js.get(crit, LOCKED_SCORE if crit == LOCKED_CRITERION else 0) for crit, _ in CRITERIA))
     # Calculate average per criteria and total
     avg_scores = {}
     for crit, _ in CRITERIA:
-        avg_scores[crit] = round(sum(team_scores.get(j, {}).get(crit, 0) for j in JUDGES) / len(JUDGES), 2)
+        if crit == LOCKED_CRITERION:
+            avg_scores[crit] = LOCKED_SCORE
+        else:
+            avg_scores[crit] = round(sum(team_scores.get(j, {}).get(crit, 0) for j in JUDGES) / len(JUDGES), 2)
     avg_total = round(sum(judge_totals[j] for j in JUDGES) / len(JUDGES), 2)
     return render_template(
         'team_detail.html',
@@ -100,7 +109,9 @@ def team_detail(team_name):
         judge_scores=judge_scores,
         judge_totals=judge_totals,
         avg_scores=avg_scores,
-        avg_total=avg_total
+        avg_total=avg_total,
+        locked_criterion=LOCKED_CRITERION,
+        locked_score=LOCKED_SCORE
     )
 
 @app.route('/team/<team_name>/clear/<judge>', methods=['POST'])
