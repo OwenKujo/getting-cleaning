@@ -11,3 +11,6 @@ psycopg2-binary
 gunicorn
 python-dotenv
 openai
+Flask
+pandas
+openpyxl

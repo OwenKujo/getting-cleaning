@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Teams List</title>
+    <link href="https://fonts.googleapis.com/css?family=Kanit:400,700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kanit', 'Prompt', sans-serif; background: #f9f6f2; margin: 0; padding: 0; }
+        .navbar {
+            width: 100%;
+            background: linear-gradient(90deg, #f7e7b4 0%, #e6d3a3 100%);
+            border-bottom: 2px solid #bfa76a;
+            box-shadow: 0 2px 8px #bfa76a22;
+            padding: 0;
+        }
+        .navbar-inner {
+            max-width: 950px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            padding: 0 32px;
+            height: 56px;
+        }
+        .nav-link {
+            color: #7c5c2b;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1em;
+            letter-spacing: 1px;
+            padding: 8px 0;
+            border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-bottom 0.2s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #a67c2d;
+            border-bottom: 2.5px solid #bfa76a;
+        }
+        .container { max-width: 950px; margin: 40px auto; padding: 32px; background: #fffbe9; border-radius: 18px; box-shadow: 0 4px 24px #bfa76a33; border: 2px solid #bfa76a; }
+        h1 { text-align: center; margin-bottom: 32px; color: #7c5c2b; letter-spacing: 2px; font-size: 2.3em; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 24px; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px #bfa76a22; }
+        th, td { padding: 14px 16px; text-align: left; font-size: 1.08em; }
+        th { background: linear-gradient(90deg, #f7e7b4 0%, #e6d3a3 100%); color: #7c5c2b; border-bottom: 2px solid #bfa76a; font-weight: bold; }
+        td { border-bottom: 1px solid #e6d3a3; }
+        tr:last-child td { border-bottom: none; }
+        .team-link { text-decoration: none; color: #a67c2d; font-weight: bold; transition: color 0.2s; }
+        .team-link:hover { color: #7c5c2b; text-decoration: underline; }
+        .judge-status { font-size: 1.2em; text-align: center; }
+        .check { color: #bfa76a; font-weight: bold; }
+        .cross { color: #bfa76a55; font-weight: bold; }
+        @media (max-width: 700px) {
+            .navbar-inner { padding: 0 8px; gap: 12px; }
+            .container { padding: 8px; }
+            th, td { padding: 8px 6px; font-size: 0.98em; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a class="nav-link active" href="{{ url_for('home') }}">Teams</a>
+            <a class="nav-link" href="{{ url_for('ranking') }}">Rankings</a>
+        </div>
+    </nav>
+    <div class="container">
+        <h1>Teams</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Team Name</th>
+                    {% for judge in judges %}
+                        <th>{{ judge }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in team_statuses %}
+                <tr>
+                    <td><a class="team-link" href="{{ url_for('team_detail', team_name=team.name) }}">{{ team.name }}</a></td>
+                    {% for judge in judges %}
+                        <td class="judge-status">
+                            {% if team.judge_status[judge] %}
+                                <span class="check">&#10003;</span>
+                            {% else %}
+                                <span class="cross">&#10007;</span>
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html> 
