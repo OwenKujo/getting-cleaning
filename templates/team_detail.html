@@ -73,6 +73,7 @@
             background: #fffbe9;
             color: #7c5c2b;
         }
+        .score-table-responsive { width: 100%; overflow-x: auto; }
         .criteria-table {
             width: 100%;
             border-collapse: separate;
@@ -82,6 +83,7 @@
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 1px 4px #bfa76a22;
+            min-width: 500px;
         }
         .criteria-table th, .criteria-table td {
             border: 1px solid #e6d3a3;
@@ -133,12 +135,20 @@
         .member-list { margin: 0; padding-left: 18px; }
         .member-list li { margin-bottom: 6px; }
         .pitch-link { color: #a67c2d; text-decoration: underline; }
-        @media (max-width: 800px) {
+        @media (max-width: 1100px) {
             .navbar-inner { padding: 0 8px; gap: 12px; }
             .container { padding: 8px; }
-            .cards { gap: 10px; }
-            .card { padding: 10px 8px; min-width: 180px; }
+            h1 { font-size: 1.5em; }
+        }
+        @media (max-width: 800px) {
+            .navbar-inner { flex-direction: column; height: auto; gap: 8px; padding: 0 4px; }
+            .container { padding: 2vw; margin: 10px auto; }
+            h1 { font-size: 1.1em; margin-bottom: 18px; }
+            .cards { flex-direction: column; gap: 10px; }
+            .card { padding: 10px 8px; min-width: 180px; max-width: 100%; }
             .score-section { padding: 10px 6px; }
+            .score-table-responsive { min-width: 0; }
+            .criteria-table { min-width: 350px; }
         }
     </style>
 </head>
@@ -213,6 +223,7 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div class="score-table-responsive">
                 <table class="criteria-table">
                     <thead>
                         <tr>
@@ -237,6 +248,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                </div>
                 <div style="text-align:center; font-size:1.2em; margin-bottom:10px; color:#7c5c2b;">
                     <b>รวม:</b> {{ judge_totals[selected_judge] }} / 100
                 </div>

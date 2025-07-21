@@ -2,11 +2,54 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify
 import pandas as pd
 import json
 import os
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
 EXCEL_FILE = 'Bang Rak Hackathon 2025 (Responses).xlsx'
 SCORES_FILE = 'scores.json'
+
+# Database setup
+DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///scores.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+class Score(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    team_name = db.Column(db.String(255), nullable=False)
+    judge = db.Column(db.String(64), nullable=False)
+    scores = db.Column(db.JSON, nullable=False)
+    __table_args__ = (db.UniqueConstraint('team_name', 'judge', name='unique_team_judge'),)
+
+def db_load_scores():
+    all_scores = Score.query.all()
+    result = {}
+    for s in all_scores:
+        if s.team_name not in result:
+            result[s.team_name] = {}
+        result[s.team_name][s.judge] = s.scores
+    return result
+
+def db_save_score(team_name, judge, judge_scores):
+    score = Score.query.filter_by(team_name=team_name, judge=judge).first()
+    if score:
+        score.scores = judge_scores
+    else:
+        score = Score(team_name=team_name, judge=judge, scores=judge_scores)
+        db.session.add(score)
+    db.session.commit()
+
+def db_clear_judge_score(team_name, judge):
+    score = Score.query.filter_by(team_name=team_name, judge=judge).first()
+    if score:
+        db.session.delete(score)
+        db.session.commit()
+
+def db_reset_scores():
+    Score.query.delete()
+    db.session.commit()
 
 # Helper to load team data from Excel
 def load_teams():
@@ -14,18 +57,6 @@ def load_teams():
     df = df.fillna('')
     teams = df.to_dict(orient='records')
     return teams
-
-# Helper to load scores from JSON
-def load_scores():
-    if not os.path.exists(SCORES_FILE):
-        return {}
-    with open(SCORES_FILE, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-# Helper to save scores to JSON
-def save_scores(scores):
-    with open(SCORES_FILE, 'w', encoding='utf-8') as f:
-        json.dump(scores, f, ensure_ascii=False, indent=2)
 
 JUDGES = ["Judge's Owen", "Judge's Kevin", "Judge's Ice"]
 CRITERIA = [
@@ -43,7 +74,7 @@ LOCKED_SCORE = 10
 @app.route('/')
 def home():
     teams = load_teams()
-    scores = load_scores()
+    scores = db_load_scores()
     team_statuses = []
     for team in teams:
         if not isinstance(team, dict):
@@ -61,7 +92,7 @@ def home():
 @app.route('/team/<team_name>', methods=['GET', 'POST'])
 def team_detail(team_name):
     teams = load_teams()
-    scores = load_scores()
+    scores = db_load_scores()
     team = next((t for t in teams if t.get("ชื่อทีม\nTeam's name") == team_name), None)
     if not team:
         return f"Team '{team_name}' not found", 404
@@ -79,10 +110,7 @@ def team_detail(team_name):
                     judge_scores[crit] = int(val)
                 except:
                     judge_scores[crit] = 0
-        if team_name not in scores:
-            scores[team_name] = {}
-        scores[team_name][selected_judge] = judge_scores
-        save_scores(scores)
+        db_save_score(team_name, selected_judge, judge_scores)
         return redirect(url_for('team_detail', team_name=team_name, judge=selected_judge))
     # Prepare scores for display
     team_scores = scores.get(team_name, {})
@@ -116,19 +144,13 @@ def team_detail(team_name):
 
 @app.route('/team/<team_name>/clear/<judge>', methods=['POST'])
 def clear_judge_score(team_name, judge):
-    scores = load_scores()
-    if team_name in scores and judge in scores[team_name]:
-        del scores[team_name][judge]
-        # If no judges left, remove the team entry
-        if not scores[team_name]:
-            del scores[team_name]
-        save_scores(scores)
+    db_clear_judge_score(team_name, judge)
     return redirect(url_for('team_detail', team_name=team_name, judge=judge))
 
 @app.route('/ranking')
 def ranking():
     teams = load_teams()
-    scores = load_scores()
+    scores = db_load_scores()
     ranking_data = []
     for team in teams:
         if not isinstance(team, dict):
@@ -156,7 +178,7 @@ def ranking():
 
 @app.route('/reset_scores', methods=['POST'])
 def reset_scores():
-    save_scores({})
+    db_reset_scores()
     return redirect(url_for('ranking'))
 
 if __name__ == '__main__':
