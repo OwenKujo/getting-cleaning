@@ -182,4 +182,6 @@ def reset_scores():
     return redirect(url_for('ranking'))
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=False) 
