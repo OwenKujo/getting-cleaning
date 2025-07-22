@@ -93,7 +93,15 @@ def home():
 def team_detail(team_name):
     teams = load_teams()
     scores = db_load_scores()
-    team = next((t for t in teams if t.get("ชื่อทีม\nTeam's name") == team_name), None)
+    # Case-insensitive, whitespace-insensitive match
+    team = next(
+        (
+            t for t in teams
+            if isinstance(t.get("ชื่อทีม\nTeam's name", ''), str)
+            and t.get("ชื่อทีม\nTeam's name", '').strip().lower() == team_name.strip().lower()
+        ),
+        None
+    )
     if not team:
         return f"Team '{team_name}' not found", 404
     # Judge selection
