@@ -92,7 +92,11 @@ LOCKED_SCORE = 10
 def login():
     if request.method == 'POST':
         password = request.form['password']
-        if password == PASSWORD:
+        # Normalize the password to handle potential encoding issues
+        entered_password = password.strip()
+        expected_password = PASSWORD.strip()
+        
+        if entered_password == expected_password:
             session['logged_in'] = True
             return redirect(url_for('home'))
         else:
