@@ -1,10 +1,16 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, flash
 import pandas as pd
 import json
 import os
 from flask_sqlalchemy import SQLAlchemy
+from functools import wraps
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = 'bangrak2025_secret_key'  # Required for session management
 
 EXCEL_FILE = 'Bang Rak Hackathon 2025 (Responses).xlsx'
 SCORES_FILE = 'scores.json'
@@ -16,12 +22,23 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
+# Password for access
+PASSWORD = os.environ.get('SCORING_PASSWORD')
+
 class Score(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     team_name = db.Column(db.String(255), nullable=False)
     judge = db.Column(db.String(64), nullable=False)
     scores = db.Column(db.JSON, nullable=False)
     __table_args__ = (db.UniqueConstraint('team_name', 'judge', name='unique_team_judge'),)
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'logged_in' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 def db_load_scores():
     all_scores = Score.query.all()
@@ -71,7 +88,24 @@ CRITERIA = [
 LOCKED_CRITERION = 'Pitching & Communication'
 LOCKED_SCORE = 10
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        password = request.form['password']
+        if password == PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('home'))
+        else:
+            flash('Invalid password. Please try again.', 'error')
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def home():
     teams = load_teams()
     scores = db_load_scores()
@@ -90,6 +124,7 @@ def home():
     return render_template('team_list.html', team_statuses=team_statuses, judges=JUDGES)
 
 @app.route('/team/<team_name>', methods=['GET', 'POST'])
+@login_required
 def team_detail(team_name):
     teams = load_teams()
     scores = db_load_scores()
@@ -151,11 +186,13 @@ def team_detail(team_name):
     )
 
 @app.route('/team/<team_name>/clear/<judge>', methods=['POST'])
+@login_required
 def clear_judge_score(team_name, judge):
     db_clear_judge_score(team_name, judge)
     return redirect(url_for('team_detail', team_name=team_name, judge=judge))
 
 @app.route('/ranking')
+@login_required
 def ranking():
     teams = load_teams()
     scores = db_load_scores()
@@ -185,6 +222,7 @@ def ranking():
     return render_template('ranking.html', ranking_data=ranking_data, judges=JUDGES)
 
 @app.route('/reset_scores', methods=['POST'])
+@login_required
 def reset_scores():
     db_reset_scores()
     return redirect(url_for('ranking'))

@@ -18,9 +18,14 @@
             margin: 0 auto;
             display: flex;
             align-items: center;
-            gap: 32px;
+            justify-content: space-between;
             padding: 0 32px;
             height: 56px;
+        }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 32px;
         }
         .nav-link {
             color: #7c5c2b;
@@ -35,6 +40,23 @@
         .nav-link:hover, .nav-link.active {
             color: #a67c2d;
             border-bottom: 2.5px solid #bfa76a;
+        }
+        .logout-btn {
+            background: linear-gradient(135deg, #DAA520 0%, #B8860B 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 0.9em;
+            font-weight: 500;
+            font-family: 'Kanit', sans-serif;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            text-decoration: none;
+        }
+        .logout-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(218, 165, 32, 0.3);
         }
         .container { max-width: 1100px; margin: 40px auto; padding: 32px; background: #fffbe9; border-radius: 18px; box-shadow: 0 4px 24px #bfa76a33; border: 2px solid #bfa76a; }
         h1 { text-align: center; margin-bottom: 32px; color: #7c5c2b; letter-spacing: 2px; font-size: 2.3em; }
@@ -155,8 +177,11 @@
 <body>
     <nav class="navbar">
         <div class="navbar-inner">
-            <a class="nav-link active" href="{{ url_for('home') }}">Teams</a>
-            <a class="nav-link" href="{{ url_for('ranking') }}">Rankings</a>
+            <div class="nav-links">
+                <a class="nav-link active" href="{{ url_for('home') }}">Teams</a>
+                <a class="nav-link" href="{{ url_for('ranking') }}">Rankings</a>
+            </div>
+            <a class="logout-btn" href="{{ url_for('logout') }}">Logout</a>
         </div>
     </nav>
     <div class="container">
